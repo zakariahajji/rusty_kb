@@ -1,14 +1,19 @@
 mod retriever;
-mod generator;
-mod chatbot;
+use retriever::{load_knowledge_base, retrieve};
 
-#[tokio::main]
-async fn main() {
-    let query = "What is Rust programming?"; // Example query
-    let chatbot = chatbot::ChatBot::new("./kb/medical.csv").await;
+fn main() {
+    let query = "mucus";
 
-    match chatbot.answer_question(query).await {
-        Ok(response) => println!("Chatbot: {}", response),
-        Err(e) => eprintln!("Error: {}", e),
+    match load_knowledge_base("./kb/medical.csv") {
+        Ok(knowledge_base) => {
+            let responses = retrieve(&knowledge_base, query);
+            for response in responses {
+                println!("Title: {}", response.title);
+                println!("Text: {}\n", response.text);
+            }
+        }
+        Err(e) => {
+            eprintln!("Error loading knowledge base: {}", e);
+        }
     }
 }

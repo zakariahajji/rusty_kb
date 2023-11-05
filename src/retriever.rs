@@ -1,24 +1,36 @@
-use serde_json::{Value, from_str};
+use csv::ReaderBuilder;
+use serde::Deserialize;
+use std::error::Error;
 use std::fs::File;
-use std::io::{self, Read};
 
-pub struct Retriever {
-    knowledge_base: Value,
+#[derive(Debug, Deserialize)]
+pub struct Record {
+    pub title: String,
+    pub text: String,
 }
 
-impl Retriever {
-    pub async fn new(kb_path: &str) -> io::Result<Self> {
-        let mut file = File::open(kb_path)?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
+pub fn load_knowledge_base(kb_path: &str) -> Result<Vec<Record>, Box<dyn Error>> {
+    let file = File::open(kb_path)?;
+    let mut rdr = ReaderBuilder::new().from_reader(file);
 
-        let knowledge_base: Value = from_str(&contents).expect("JSON was not well-formatted");
-        
-        Ok(Self { knowledge_base })
+    let mut knowledge_base: Vec<Record> = Vec::new();
+
+    for result in rdr.deserialize() {
+        let record: Record = result?;
+        knowledge_base.push(record);
     }
 
-    pub async fn retrieve(&self, query: &str) -> Vec<Value> {
+    Ok(knowledge_base)
+}
 
-        vec![self.knowledge_base.clone()]
+pub fn retrieve<'a>(knowledge_base: &'a [Record], query: &str) -> Vec<&'a Record> {
+    let mut matches: Vec<&'a Record> = Vec::new();
+
+    for record in knowledge_base {
+        if record.title.contains(query) || record.text.contains(query) {
+            matches.push(record);
+        }
     }
+
+    matches
 }
